@@ -926,10 +926,12 @@ pyobj get_subscript(pyobj c, pyobj key, pyobj end, pyobj step)
         printf("index out of range\n");
         assert(0);
       }
-      int size = (abs(endIdx - startIdx)) / abs(stepSize);
-      if (abs(stepSize) > 1) {
-        size += 1;
-      }
+      int size = 1;
+      size += (abs(endIdx - startIdx) - 1) / abs(stepSize);
+      // int size = (abs(endIdx - startIdx)) / abs(stepSize);
+      // if (abs(stepSize) > 1) {
+      //   size += (abs(endIdx - startIdx) % stepSize != 0);
+      // }
       if (endIdx == startIdx) {
         pyobj nb = b->tag == LIST ? make_list(inject_int(0)) : make_string(inject_int(0));
         return nb;

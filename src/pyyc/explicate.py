@@ -253,19 +253,14 @@ class Explicator(NodeTransformer):
             ltemp = Name('tmp' + str(self.tmpCtr), Store())
             self.tmpCtr += 1
             node.upper = Let(ltemp, Name(node.parent.value.id), IfExp(Call(Name('is_negative', Load()), [node.step], []),
-                                                                    InjectFrom('int', UnaryOp(USub(), BinOp(Call(Name('get_length', Load()), [node.parent.value], []), Add(), Constant(1)))),
-                                                                        InjectFrom('int', Call(Name('get_length', Load()), [node.parent.value], []))))
+                                                                    InjectFrom('int', UnaryOp(USub(), BinOp(Call(Name('get_length', Load()), [Name(node.parent.value.id)], []), Add(), Constant(1)))),
+                                                                        InjectFrom('int', Call(Name('get_length', Load()), [Name(node.parent.value.id)], []))))
         return node
 
-    # def visit_Subscript(self, node):
-    #     if not isinstance(node.slice, Constant):
-    #         print(ast.dump(node))
-    #         if node.slice.lower == None:
-    #             node.slice.lower = Constant(0)
-    #         if node.slice.step == None:
-    #             node.slice.step = Constant(1)
-    #     self.generic_visit(node)
-    #     return node
+    def visit_Subscript(self, node):
+        node.value = self.visit(node.value)
+        node.slice = self.visit(node.slice)
+        return node
 
     def visit_MultiNode(self, node):
         for i in range(len(node.nodes)):

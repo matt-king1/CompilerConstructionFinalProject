@@ -88,7 +88,7 @@ class Spiller():
                 case 'call':
                     for j in range(len(ir[i][2])):
                         source = ir[i][2][j]
-                        if coloring.get(source, source) == 'stack':
+                        if coloring.get(source) == 'stack':
                             new_graph[block][0].append(['movl', source, 'tmp' + str(tmpcount), lineNumber])
                             spill_code.append(new_graph[block][0][-1])
                             lineNumber += 1
