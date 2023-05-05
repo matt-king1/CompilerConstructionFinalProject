@@ -7,6 +7,7 @@
 #include "runtime.h"
 
 int min(int x, int y) { return y < x ? y : x; }
+int max(int x, int y) { return y > x ? y : x; }
 
 /* Some forward declarations */
 static int equal_pyobj(pyobj a, pyobj b);
@@ -16,6 +17,17 @@ static void print_dict(pyobj dict);
 static list list_add(list x, list y);
 static string string_add(string x, string y);
 static void print_string(pyobj s, int layered);
+
+int get_length(pyobj p) {
+  big_pyobj* b = project_big(p);
+  int len = b->tag == LIST ? b->u.l.len : b->u.s.len;
+  return len;
+}
+
+pyobj is_negative(pyobj p) {
+  assert(is_int(p));
+  return inject_int(project_int(p) < 0);
+}
 
 int tag(pyobj val) {
   return val & MASK;
@@ -639,7 +651,7 @@ static pyobj* string_subscript(string s, pyobj n)
     else if (0 <= s.len + i && s.len + i < s.len)
       return &(s.data[s.len + i]);
     else {
-      printf("ERROR: list_nth index larger than list");
+      printf("ERROR: string_nthindex larger than list");
       exit(1);
     }
   }
@@ -648,12 +660,12 @@ static pyobj* string_subscript(string s, pyobj n)
     if (b < s.len)
       return &(s.data[b]);
     else {
-      printf("ERROR: list_nth index larger than list");
+      printf("ERROR: string_nthindex larger than list");
       exit(1);
     }
   }
   default:
-    printf("ERROR: list_nth expected integer index");
+    printf("ERROR: string_nthexpected integer index");
     exit(1);
   }
 }
@@ -885,11 +897,62 @@ static pyobj subscript(big_pyobj* c, pyobj key)
   }
 }
 
-pyobj get_subscript(pyobj c, pyobj key)
+pyobj get_subscript(pyobj c, pyobj key, pyobj end, pyobj step)
 {
   switch (tag(c)) {
   case BIG_TAG: {
     big_pyobj* b = project_big(c);
+    
+    if (end != 0) {
+      if (b->tag == DICT) {
+        printf("error in get_subscript, cant slice dict\n");
+        assert(0);
+      }
+      int startIdx = project_int(key);
+      int endIdx = project_int(end);
+      int stepSize = project_int(step);
+      int len = (b->tag == LIST ? b->u.l.len : b->u.s.len);
+      // printf("%d, %d, %d, %d", startIdx, endIdx, stepSize, len);
+      if (endIdx < 0) {
+        endIdx = len + endIdx; 
+      }
+      if (startIdx < 0) {
+        startIdx = len + startIdx;
+      }
+      endIdx = min(endIdx, len);
+      endIdx = max(endIdx, -1);
+      startIdx = min(startIdx, len-1);
+      if (startIdx < 0) {
+        printf("index out of range\n");
+        assert(0);
+      }
+      int size = (abs(endIdx - startIdx)) / abs(stepSize);
+      if (abs(stepSize) > 1) {
+        size += 1;
+      }
+      if (endIdx == startIdx) {
+        pyobj nb = b->tag == LIST ? make_list(inject_int(0)) : make_string(inject_int(0));
+        return nb;
+      }
+      if ((endIdx < startIdx && stepSize > 0) || (endIdx > startIdx && stepSize < 0)) {
+        pyobj nb = b->tag == LIST ? make_list(inject_int(0)) : make_string(inject_int(0));
+        return nb;
+      }
+      pyobj nb = b->tag == LIST ? make_list(inject_int(size)) : make_string(inject_int(size));
+      int idx = 0;
+      if (stepSize > 0) {
+        for(; startIdx < endIdx; startIdx += stepSize) {
+          set_subscript(nb, inject_int(idx), subscript(b, inject_int(startIdx)));
+          idx++;
+        }
+      } else {
+        for(; startIdx > endIdx; startIdx += stepSize) {
+          set_subscript(nb, inject_int(idx), subscript(b, inject_int(startIdx)));
+          idx++;
+        }
+      }
+      return nb;
+    }
     pyobj p = subscript(b, key);
     if (b->tag == STRING) {
       pyobj s = make_string(inject_int(1));

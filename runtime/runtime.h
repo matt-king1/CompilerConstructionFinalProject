@@ -134,7 +134,7 @@ big_pyobj* create_list(pyobj length);
 big_pyobj* create_string(pyobj length);
 big_pyobj* create_dict();
 pyobj set_subscript(pyobj c, pyobj key, pyobj val);
-pyobj get_subscript(pyobj c, pyobj key);
+pyobj get_subscript(pyobj c, pyobj key, pyobj end, pyobj step);
 
 big_pyobj* add(big_pyobj* a, big_pyobj* b);
 int equal(big_pyobj* a, big_pyobj* b);
@@ -154,6 +154,9 @@ big_pyobj* get_function(pyobj o); /* Get the function from inside a method */
 int has_attr(pyobj o, char* attr);
 pyobj get_attr(pyobj c, char* attr);
 pyobj set_attr(pyobj obj, char* attr, pyobj val);
+
+int get_length(pyobj p);
+pyobj is_negative(pyobj p);
 
 pyobj error_pyobj(char* string);
 

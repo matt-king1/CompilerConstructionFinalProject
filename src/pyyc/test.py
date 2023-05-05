@@ -1,3 +1,5 @@
-a = {1:"k", 2:"abc"}
-print(a)
-print(a[1])
+# a = "qwerty"
+# print(a[::-1])
+a = "qwerty"
+b = "uiop" + a[2:4]
+print(b)

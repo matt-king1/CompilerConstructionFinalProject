@@ -218,6 +218,55 @@ class Explicator(NodeTransformer):
                                                                                                             TypeError('Unsupported Types for Comparison'))))))
         return letNode
 
+    def visit_Slice(self, node):
+        self.generic_visit(node)
+        if node.step == None:
+            node.step = Constant(1)
+            node.step = self.visit(node.step)
+        # if node.lower == None and node.upper == None:
+        #     ltemp = Name('tmp' + str(self.tmpCtr), Store())
+        #     self.tmpCtr += 1
+        #     rtemp = Name('tmp' + str(self.tmpCtr), Store())
+        #     self.tmpCtr += 1
+        #     node.lower = Let(ltemp, Name(node.parent.value.id), IfExp(Call(Name('is_negative', Load()), [node.step], []),
+        #                                                         InjectFrom('int', BinOp(Call(Name('get_length', Load()), [ltemp], []), Add(), InjectFrom('int', Constant(-1)))),
+        #                                                             InjectFrom('int', Constant(0))))
+        #     node.upper = Let(rtemp, Name(node.parent.value.id), IfExp(Call(Name('is_negative', Load()), [node.step], []), 
+        #                                                         InjectFrom('int', Constant(0)),
+        #                                                             Call(Name('get_length', Load()), [node.parent.value], [])))
+        #     # node.lower = IfExp(InjectFrom('int', Call(Name('is_negative', Load()), [node.step], [])),  
+        #     #                         BinOp(Call(Name('get_length', Load()), [node.parent.value], []), Add(), Constant(-1)), 
+        #     #                             Constant(0))
+        #     # node.upper = IfExp(InjectFrom('int', Call(Name('is_negative', Load()), [node.step], [])), 
+        #     #                     Constant(0),
+        #     #                         Call(Name('get_length', Load()), [node.parent.value], []))
+        #     # node.lower = self.visit(node.lower)
+        #     # node.upper = self.visit(node.upper)
+        if node.lower == None:
+            ltemp = Name('tmp' + str(self.tmpCtr), Store())
+            self.tmpCtr += 1
+            node.lower = Let(ltemp, Name(node.parent.value.id), IfExp(Call(Name('is_negative', Load()), [node.step], []), 
+                                                                    InjectFrom('int', Constant(-1)), 
+                                                                        InjectFrom('int', Constant(0))))
+            # node.lower = self.visit(node.lower)
+        if node.upper == None:
+            ltemp = Name('tmp' + str(self.tmpCtr), Store())
+            self.tmpCtr += 1
+            node.upper = Let(ltemp, Name(node.parent.value.id), IfExp(Call(Name('is_negative', Load()), [node.step], []),
+                                                                    InjectFrom('int', UnaryOp(USub(), BinOp(Call(Name('get_length', Load()), [node.parent.value], []), Add(), Constant(1)))),
+                                                                        InjectFrom('int', Call(Name('get_length', Load()), [node.parent.value], []))))
+        return node
+
+    # def visit_Subscript(self, node):
+    #     if not isinstance(node.slice, Constant):
+    #         print(ast.dump(node))
+    #         if node.slice.lower == None:
+    #             node.slice.lower = Constant(0)
+    #         if node.slice.step == None:
+    #             node.slice.step = Constant(1)
+    #     self.generic_visit(node)
+    #     return node
+
     def visit_MultiNode(self, node):
         for i in range(len(node.nodes)):
             node.nodes[i] = self.visit(node.nodes[i])

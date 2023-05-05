@@ -413,19 +413,33 @@ class FlattenClass(ast.NodeTransformer):
         self.tmpCtr += 1
         return nameNode
 
+    # def visit_Slice(self, node):
+    #     self.generic_visit(node)
+    #     if node.lower == None and node.upper == None:
+    #         node.lower = IfExp(Compare(ProjectFrom('int',ast.Name(node.step.id)), [Gt()], [InjectToConstant(0)]), Constant(0), Call(Name('get_length', Load()), [Name(node.parent.value.id)], []))
+          
+
     def visit_Subscript(self, node):
-        self.generic_visit(node)
+        node.value = self.visit(node.value)
+        node.slice = self.visit(node.slice)
         obj = node.value.id
-        key = node.slice.value if isinstance(node.slice, ast.Constant) else node.slice.id
-        # print(ast.dump(node.parent, indent=4))
+        print(ast.dump(node.slice, indent=4))
         if isinstance(node.ctx, ast.Store):
+            key = node.slice.value if isinstance(node.slice, ast.Constant) else node.slice.id
             val = node.parent.value.id
             explicateString = f'set_subscript({obj}, {key}, {val})'
             explicateTree = ast.parse(explicateString).body
             self.base += explicateTree
             return node.value
         else: #load
-            explicateString = f'get_subscript({obj},{key})'
+            start = node.slice.lower.id if isinstance(node.slice, ast.Slice) else node.slice.id
+            step = 0
+            end = 0
+            # print(ast.dump(node))
+            if isinstance(node.slice, ast.Slice):
+                step = node.slice.step.id
+                end = node.slice.upper.id
+            explicateString = f'get_subscript({obj},{start},{end},{step})'
             explicateTree = ast.parse(explicateString).body
             if not isinstance(node.parent, ast.Assign) or isinstance(node.parent.targets[0], ast.Subscript):
                 tmpVar = ast.Name("tmp"+str(self.tmpCtr), ast.Store())
