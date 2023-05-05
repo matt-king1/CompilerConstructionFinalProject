@@ -139,9 +139,8 @@ class IRClass(ast.NodeVisitor):
         lines = []
         if (isinstance(node.operand, ast.Num)):
             lines.append(['movl', -node.operand.n if isinstance(node.op, ast.USub) else int(not node.operand.n), node.parent.targets[0].id])
-        elif (isinstance(node.op, ast.USub)):
-            if node.operand.id != node.parent.targets[0].id:
-                lines.append(['movl', node.operand.id, node.parent.targets[0].id])
+        if (isinstance(node.op, ast.USub)):
+            lines.append(['movl', node.operand.id, node.parent.targets[0].id])
             lines.append(['negl', node.parent.targets[0].id])
         else:
             lines.append(['not', node.operand.id, node.parent.targets[0].id])

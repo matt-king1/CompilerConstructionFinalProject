@@ -245,16 +245,16 @@ class Explicator(NodeTransformer):
         if node.lower == None:
             ltemp = Name('tmp' + str(self.tmpCtr), Store())
             self.tmpCtr += 1
-            node.lower = Let(ltemp, Name(node.parent.value.id), IfExp(Call(Name('is_negative', Load()), [node.step], []), 
-                                                                    InjectFrom('int', Constant(-1)), 
-                                                                        InjectFrom('int', Constant(0))))
+            node.lower = IfExp(Call(Name('is_negative', Load()), [node.step], []), 
+                            InjectFrom('int', Constant(-1)), 
+                                InjectFrom('int', Constant(0)))
             # node.lower = self.visit(node.lower)
         if node.upper == None:
             ltemp = Name('tmp' + str(self.tmpCtr), Store())
             self.tmpCtr += 1
-            node.upper = Let(ltemp, Name(node.parent.value.id), IfExp(Call(Name('is_negative', Load()), [node.step], []),
-                                                                    InjectFrom('int', UnaryOp(USub(), BinOp(Call(Name('get_length', Load()), [Name(node.parent.value.id)], []), Add(), Constant(1)))),
-                                                                        InjectFrom('int', Call(Name('get_length', Load()), [Name(node.parent.value.id)], []))))
+            node.upper =  IfExp(Call(Name('is_negative', Load()), [node.step], []),
+                            InjectFrom('int', UnaryOp(USub(), BinOp(Call(Name('get_length', Load()), [Name(node.parent.value.id)], []), Add(), Constant(1)))),
+                                InjectFrom('int', Call(Name('get_length', Load()), [Name(node.parent.value.id)], [])))
         return node
 
     def visit_Subscript(self, node):

@@ -37,11 +37,12 @@ class GraphColorer():
                     maxkey = key
             #find the register with the highest priority that is not in notallowed
             min = float('inf')
-            minreg = ''
+            minreg = 'stack'
             for reg in self.priority.keys():
                 if self.priority[reg] < min and reg not in self.notallowed[maxkey]:
                     min = self.priority[reg]
                     minreg = reg
+            
             #add the register to the registers dictionary
             self.registers[maxkey] = minreg
             #add the register to the notallowed list of neighbors
