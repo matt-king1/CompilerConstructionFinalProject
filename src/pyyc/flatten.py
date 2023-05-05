@@ -11,6 +11,7 @@ class FlattenClass(ast.NodeTransformer):
         self.newTree = newTree
         self.base = self.newTree.body
         self.parent = self.newTree
+        self.get_length_parent = None
     
     def visit_Expr(self, node):
         self.generic_visit(node)
@@ -61,6 +62,9 @@ class FlattenClass(ast.NodeTransformer):
         return node
 
     def visit_Call(self, node):
+        if isinstance(node.func, Name) and node.func.id == 'get_length':
+            node.args[0] = Name(self.get_length_parent.id)
+            node.args[0].parent = node
         node.args = [self.visit(arg) for arg in node.args]
         node.func = self.visit(node.func)
         if isinstance(node.func, Name):
@@ -413,11 +417,13 @@ class FlattenClass(ast.NodeTransformer):
         self.tmpCtr += 1
         return nameNode
 
-    # def visit_Slice(self, node):
-    #     self.generic_visit(node)
-    #     if node.lower == None and node.upper == None:
-    #         node.lower = IfExp(Compare(ProjectFrom('int',ast.Name(node.step.id)), [Gt()], [InjectToConstant(0)]), Constant(0), Call(Name('get_length', Load()), [Name(node.parent.value.id)], []))
-          
+    def visit_Slice(self, node):
+        node.step = self.visit(node.step)
+        node.lower = self.visit(node.lower)
+        self.get_length_parent = node.parent.value
+        node.upper = self.visit(node.upper)
+        return node
+
 
     def visit_Subscript(self, node):
         node.value = self.visit(node.value)

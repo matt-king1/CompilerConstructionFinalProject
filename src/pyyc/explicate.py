@@ -223,38 +223,19 @@ class Explicator(NodeTransformer):
         if node.step == None:
             node.step = Constant(1)
             node.step = self.visit(node.step)
-        # if node.lower == None and node.upper == None:
-        #     ltemp = Name('tmp' + str(self.tmpCtr), Store())
-        #     self.tmpCtr += 1
-        #     rtemp = Name('tmp' + str(self.tmpCtr), Store())
-        #     self.tmpCtr += 1
-        #     node.lower = Let(ltemp, Name(node.parent.value.id), IfExp(Call(Name('is_negative', Load()), [node.step], []),
-        #                                                         InjectFrom('int', BinOp(Call(Name('get_length', Load()), [ltemp], []), Add(), InjectFrom('int', Constant(-1)))),
-        #                                                             InjectFrom('int', Constant(0))))
-        #     node.upper = Let(rtemp, Name(node.parent.value.id), IfExp(Call(Name('is_negative', Load()), [node.step], []), 
-        #                                                         InjectFrom('int', Constant(0)),
-        #                                                             Call(Name('get_length', Load()), [node.parent.value], [])))
-        #     # node.lower = IfExp(InjectFrom('int', Call(Name('is_negative', Load()), [node.step], [])),  
-        #     #                         BinOp(Call(Name('get_length', Load()), [node.parent.value], []), Add(), Constant(-1)), 
-        #     #                             Constant(0))
-        #     # node.upper = IfExp(InjectFrom('int', Call(Name('is_negative', Load()), [node.step], [])), 
-        #     #                     Constant(0),
-        #     #                         Call(Name('get_length', Load()), [node.parent.value], []))
-        #     # node.lower = self.visit(node.lower)
-        #     # node.upper = self.visit(node.upper)
+        ltemp = Name('tmp' + str(self.tmpCtr), Store())
+        self.tmpCtr += 1
+        node.step = Let(ltemp, node.step, ltemp)
+
         if node.lower == None:
-            ltemp = Name('tmp' + str(self.tmpCtr), Store())
-            self.tmpCtr += 1
             node.lower = IfExp(Call(Name('is_negative', Load()), [node.step], []), 
                             InjectFrom('int', Constant(-1)), 
                                 InjectFrom('int', Constant(0)))
             # node.lower = self.visit(node.lower)
         if node.upper == None:
-            ltemp = Name('tmp' + str(self.tmpCtr), Store())
-            self.tmpCtr += 1
             node.upper =  IfExp(Call(Name('is_negative', Load()), [node.step], []),
-                            InjectFrom('int', UnaryOp(USub(), BinOp(Call(Name('get_length', Load()), [Name(node.parent.value.id)], []), Add(), Constant(1)))),
-                                InjectFrom('int', Call(Name('get_length', Load()), [Name(node.parent.value.id)], [])))
+                            InjectFrom('int', UnaryOp(USub(), BinOp(Call(Name('get_length', Load()), ["parent"], []), Add(), Constant(1)))),
+                                InjectFrom('int', Call(Name('get_length', Load()), ["parent"], [])))
         return node
 
     def visit_Subscript(self, node):
