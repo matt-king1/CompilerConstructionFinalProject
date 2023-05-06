@@ -925,7 +925,7 @@ static pyobj subscript_assign(big_pyobj* b, pyobj key, pyobj val, pyobj end, pyo
         assert(0);
       }
       pyobj injected = inject_big(b);
-      pyobj middle = get_subscript(injected, key, end, inject_int(stepSize));
+      // pyobj middle = get_subscript(injected, key, end, inject_int(stepSize));
       pyobj startKey = key;
       pyobj endKey = end;
       if (stepSize < 0) {
