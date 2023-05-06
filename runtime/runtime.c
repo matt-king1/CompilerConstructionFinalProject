@@ -17,6 +17,7 @@ static void print_dict(pyobj dict);
 static list list_add(list x, list y);
 static string string_add(string x, string y);
 static void print_string(pyobj s, int layered);
+static pyobj subscript(big_pyobj* c, pyobj key);
 
 int get_length(pyobj p) {
   big_pyobj* b = project_big(p);
@@ -853,27 +854,132 @@ int equal(big_pyobj* a, big_pyobj* b) {
 
 int not_equal(big_pyobj* x, big_pyobj* y) { return !equal(x, y); }
 
-static pyobj subscript_assign(big_pyobj* c, pyobj key, pyobj val)
+static pyobj subscript_assign(big_pyobj* b, pyobj key, pyobj val, pyobj end, pyobj step)
 {
-  switch (c->tag) {
+  switch (b->tag) {
   case LIST:
-    return *list_subscript(c->u.l, key) = val;
+    if (end != 0) {
+      if (tag(val) != BIG_TAG) {
+        printf("slice assign must be of type big\n");
+        assert(0);
+      } 
+      big_pyobj* c = project_big(val);
+      if (b->tag == DICT || b->tag == STRING) {
+        printf("error in set_subscript, Strings are immuatable\n");
+        assert(0);
+      }
+      if (c->tag == DICT) {
+        printf("error in set_subscript, cannot set dict to slice");
+        assert(0);
+      }
+      int startIdx;
+      int endIdx;
+      int stepSize;
+      if (is_int(key)) {
+        startIdx = project_int(key);
+      } else if (is_bool(key)) {
+        startIdx = project_bool(key);
+      } else {
+        printf("invalid start idx\n");
+        exit(0);
+      }
+      if (is_int(end)) {
+        endIdx = project_int(end);
+      } else if (is_bool(end)) {
+        endIdx = project_bool(end);
+      } else {
+        printf("invalid start idx\n");
+        exit(0);
+      }
+      if (is_int(step)) {
+        stepSize = project_int(step);
+      } else if (is_bool(step)) {
+        stepSize = project_bool(step);
+      } else {
+        printf("invalid start idx\n");
+        exit(0);
+      }
+      int withStep = !!stepSize;
+      if (!withStep) stepSize = 1;
+      int len = (b->tag == LIST ? b->u.l.len : b->u.s.len);
+      // printf("%d, %d, %d, %d", startIdx, endIdx, stepSize, len);
+      if (endIdx < 0) {
+        endIdx = len + endIdx; 
+      }
+      if (startIdx < 0) {
+        startIdx = len + startIdx;
+      }
+      endIdx = min(endIdx, len);
+      endIdx = max(endIdx, -1);
+      startIdx = min(startIdx, len-1);
+      if (startIdx < 0) {
+        printf("index out of range\n");
+        assert(0);
+      }
+      int size = 1;
+      size += (abs(endIdx - startIdx) - 1) / abs(stepSize);
+
+      int target_size = get_length(val);
+      if (withStep && size != target_size) {
+        printf("error in set_subscript, size of assignment to slice with step does not match source size\n");
+        assert(0);
+      }
+      pyobj injected = inject_big(b);
+      pyobj middle = get_subscript(injected, key, end, inject_int(stepSize));
+      pyobj startKey = key;
+      pyobj endKey = end;
+      if (stepSize < 0) {
+        startKey = inject_int(endIdx+1);
+        endKey = inject_int(startIdx+1);
+      }
+      pyobj beggining = get_subscript(injected, inject_int(0), startKey, inject_int(1));
+      pyobj ending = make_list(0);
+      if(project_int(endKey) < get_length(injected))
+        ending = get_subscript(injected, endKey, inject_int(get_length(injected)), inject_int(1));
+      if (!is_big(beggining)) beggining = make_list(0);
+      if (!is_big(ending)) ending = make_list(0);
+      int idx = 0;
+      if (withStep && stepSize != 1) {
+        if (stepSize > 0) {
+          for(; startIdx < endIdx; startIdx += stepSize) {
+            set_subscript(injected, inject_int(startIdx), subscript(c, inject_int(idx)), 0, 0);
+            idx++;
+          }
+        } else {
+          for(; startIdx > endIdx; startIdx += stepSize) {
+            set_subscript(injected, inject_int(startIdx), subscript(c, inject_int(idx)), 0, 0);
+            idx++;
+          }
+        }
+        pyobj middle = get_subscript(injected, startKey, endKey, inject_int(1));
+        // print_any(middle);
+        big_pyobj* new = add(add(project_big(beggining), project_big(middle)), project_big(ending));
+        b->u.l.len = new->u.l.len;
+        b->u.l.data = new->u.l.data;
+        return inject_big(b);
+      }
+      big_pyobj* new = add(add(project_big(beggining), project_big(val)), project_big(ending));
+      b->u.l.len = new->u.l.len;
+      b->u.l.data = new->u.l.data;
+      return inject_big(b);
+    }
+    return *list_subscript(b->u.l, key) = val;
   case DICT:
-    return *dict_subscript(c->u.d, key) = val;
+    return *dict_subscript(b->u.d, key) = val;
   case STRING:
-    return *string_subscript(c->u.s, key) = val;
+    return *string_subscript(b->u.s, key) = val;
   default:
     printf("error in set subscript, not a list or dictionary\n");
     assert(0);
   }
 }
 
-pyobj set_subscript(pyobj c, pyobj key, pyobj val)
+pyobj set_subscript(pyobj c, pyobj key, pyobj val, pyobj end, pyobj step)
 {
   switch (tag(c)) {
   case BIG_TAG: {
     big_pyobj* b = project_big(c);
-    return subscript_assign(b, key, val);
+    return subscript_assign(b, key, val, end, step);
   }
   default:
     printf("error in set subscript, not a list or dictionary\n");
@@ -908,9 +1014,33 @@ pyobj get_subscript(pyobj c, pyobj key, pyobj end, pyobj step)
         printf("error in get_subscript, cant slice dict\n");
         assert(0);
       }
-      int startIdx = project_int(key);
-      int endIdx = project_int(end);
-      int stepSize = project_int(step);
+      int startIdx;
+      int endIdx;
+      int stepSize;
+      if (is_int(key)) {
+        startIdx = project_int(key);
+      } else if (is_bool(key)) {
+        startIdx = project_bool(key);
+      } else {
+        printf("invalid start idx\n");
+        exit(0);
+      }
+      if (is_int(end)) {
+        endIdx = project_int(end);
+      } else if (is_bool(end)) {
+        endIdx = project_bool(end);
+      } else {
+        printf("invalid start idx\n");
+        exit(0);
+      }
+      if (is_int(step)) {
+        stepSize = project_int(step);
+      } else if (is_bool(step)) {
+        stepSize = project_bool(step);
+      } else {
+        printf("invalid start idx\n");
+        exit(0);
+      }
       int len = (b->tag == LIST ? b->u.l.len : b->u.s.len);
       // printf("%d, %d, %d, %d", startIdx, endIdx, stepSize, len);
       if (endIdx < 0) {
@@ -944,12 +1074,12 @@ pyobj get_subscript(pyobj c, pyobj key, pyobj end, pyobj step)
       int idx = 0;
       if (stepSize > 0) {
         for(; startIdx < endIdx; startIdx += stepSize) {
-          set_subscript(nb, inject_int(idx), subscript(b, inject_int(startIdx)));
+          set_subscript(nb, inject_int(idx), subscript(b, inject_int(startIdx)), 0, 0);
           idx++;
         }
       } else {
         for(; startIdx > endIdx; startIdx += stepSize) {
-          set_subscript(nb, inject_int(idx), subscript(b, inject_int(startIdx)));
+          set_subscript(nb, inject_int(idx), subscript(b, inject_int(startIdx)), 0, 0);
           idx++;
         }
       }
@@ -958,7 +1088,7 @@ pyobj get_subscript(pyobj c, pyobj key, pyobj end, pyobj step)
     pyobj p = subscript(b, key);
     if (b->tag == STRING) {
       pyobj s = make_string(inject_int(1));
-      set_subscript(s, inject_int(0), p);
+      set_subscript(s, inject_int(0), p, 0, 0);
       return s;
     }
     return p;
@@ -1299,8 +1429,8 @@ pyobj set_attr(pyobj obj, char* attr, pyobj val)
 
     if(!hashtable_change(attrs, k, v))
         if(!hashtable_insert(attrs, k, v)) {
-           printf("out of memory");
-           exit(-1);
+          printf("out of memory");
+          exit(-1);
         }
     return val;
 }

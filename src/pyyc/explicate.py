@@ -221,7 +221,10 @@ class Explicator(NodeTransformer):
     def visit_Slice(self, node):
         self.generic_visit(node)
         if node.step == None:
-            node.step = Constant(1)
+            if isinstance(node.parent.ctx, Load):
+                node.step = Constant(1)
+            else:
+                node.step = Constant(0)
             node.step = self.visit(node.step)
         ltemp = Name('tmp' + str(self.tmpCtr), Store())
         self.tmpCtr += 1

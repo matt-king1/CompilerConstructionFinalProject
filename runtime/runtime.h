@@ -133,7 +133,7 @@ pyobj eval_input_pyobj();
 big_pyobj* create_list(pyobj length);
 big_pyobj* create_string(pyobj length);
 big_pyobj* create_dict();
-pyobj set_subscript(pyobj c, pyobj key, pyobj val);
+pyobj set_subscript(pyobj c, pyobj key, pyobj val, pyobj end, pyobj step);
 pyobj get_subscript(pyobj c, pyobj key, pyobj end, pyobj step);
 
 big_pyobj* add(big_pyobj* a, big_pyobj* b);

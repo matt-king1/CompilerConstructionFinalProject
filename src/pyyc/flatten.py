@@ -378,7 +378,7 @@ class FlattenClass(ast.NodeTransformer):
 
         listExplicate = 'tmp{tmp1}=inject_int({listLength})\ntmp{tmp0} = create_list(tmp{tmp1})\ntmp{tmp0}=inject_big(tmp{tmp0})'.format(tmp1=self.tmpCtr+1,tmp0=self.tmpCtr, listLength=len(vals))
         for i in range(len(vals)):
-            listExplicate += '\ntmp{tmp1}=inject_int({cnt})\nset_subscript(tmp{tmp0}, tmp{tmp1}, {val})'.format(tmp1=self.tmpCtr+2, tmp0=self.tmpCtr, cnt=i, val=vals[i].id)
+            listExplicate += '\ntmp{tmp1}=inject_int({cnt})\nset_subscript(tmp{tmp0}, tmp{tmp1}, {val}, 0, 0)'.format(tmp1=self.tmpCtr+2, tmp0=self.tmpCtr, cnt=i, val=vals[i].id)
         explicateTree = ast.parse(listExplicate).body
         self.base += explicateTree
         nameNode = Name('tmp' + str(self.tmpCtr), ast.Load())
@@ -389,7 +389,7 @@ class FlattenClass(ast.NodeTransformer):
         self.generic_visit(node)
         stringExplicate = 'tmp{tmp1}=inject_int({listLength})\ntmp{tmp0} = create_string(tmp{tmp1})\ntmp{tmp0}=inject_big(tmp{tmp0})'.format(tmp1=self.tmpCtr+1,tmp0=self.tmpCtr, listLength=len(node.string))
         for i in range(len(node.string)):
-            stringExplicate += '\ntmp{tmp1}=inject_int({cnt})\nset_subscript(tmp{tmp0}, tmp{tmp1}, {val})'.format(tmp1=self.tmpCtr+2, tmp0=self.tmpCtr, cnt=i, val=node.string[i].id)
+            stringExplicate += '\ntmp{tmp1}=inject_int({cnt})\nset_subscript(tmp{tmp0}, tmp{tmp1}, {val}, 0, 0)'.format(tmp1=self.tmpCtr+2, tmp0=self.tmpCtr, cnt=i, val=node.string[i].id)
         explicateTree = ast.parse(stringExplicate).body
         self.base += explicateTree
         nameNode = Name('tmp' + str(self.tmpCtr), ast.Load())
@@ -409,7 +409,7 @@ class FlattenClass(ast.NodeTransformer):
             # if isinstance(kvs[i][0], ast.Constant):
             #     dictExplicate += '\nset_subscript(tmp{tmp0}, {key}, {val})'.format(tmp0=self.tmpCtr, key=kvs[i][0].value , val=kvs[i][1].value)
             # elif isinstance(kvs[i][0], ast.Name):
-            dictExplicate += '\nset_subscript(tmp{tmp0}, {key}, {val})'.format(tmp0=self.tmpCtr, key=kvs[i][0].id, val=kvs[i][1].id)
+            dictExplicate += '\nset_subscript(tmp{tmp0}, {key}, {val}, 0, 0)'.format(tmp0=self.tmpCtr, key=kvs[i][0].id, val=kvs[i][1].id)
         explicateTree = ast.parse(dictExplicate).body
         self.base += explicateTree
         nameNode = Name('tmp' + str(self.tmpCtr), ast.Load())
@@ -429,11 +429,16 @@ class FlattenClass(ast.NodeTransformer):
         node.value = self.visit(node.value)
         node.slice = self.visit(node.slice)
         obj = node.value.id
-        print(ast.dump(node.slice, indent=4))
         if isinstance(node.ctx, ast.Store):
-            key = node.slice.value if isinstance(node.slice, ast.Constant) else node.slice.id
+            start = node.slice.lower.id if isinstance(node.slice, ast.Slice) else node.slice.id
+            step = 0
+            end = 0
+            # print(ast.dump(node))
+            if isinstance(node.slice, ast.Slice):
+                step = node.slice.step.id
+                end = node.slice.upper.id
             val = node.parent.value.id
-            explicateString = f'set_subscript({obj}, {key}, {val})'
+            explicateString = f'set_subscript({obj}, {start}, {val}, {end}, {step})'
             explicateTree = ast.parse(explicateString).body
             self.base += explicateTree
             return node.value

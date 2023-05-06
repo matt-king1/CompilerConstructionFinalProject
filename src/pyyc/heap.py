@@ -53,39 +53,39 @@ class Heapify(NodeTransformer):
         return node
 
 
-class addParents(ast.NodeVisitor):
-    def generic_visit(self, node):
-        if isinstance(node, ast.While):
-            node._fields = (*node._fields, 'testtree')
-        for field, value in iter_fields(node):
-            if isinstance(value, list):
-                for item in value:
-                    if isinstance(item, AST):
-                        item.parent = node
-                        self.visit(item)
-            elif isinstance(value, AST):
-                value.parent=node
-                self.visit(value)
+# class addParents(ast.NodeVisitor):
+#     def generic_visit(self, node):
+#         if isinstance(node, ast.While):
+#             node._fields = (*node._fields, 'testtree')
+#         for field, value in iter_fields(node):
+#             if isinstance(value, list):
+#                 for item in value:
+#                     if isinstance(item, AST):
+#                         item.parent = node
+#                         self.visit(item)
+#             elif isinstance(value, AST):
+#                 value.parent=node
+#                 self.visit(value)
 
-test = '''\
-def prod(a, b):
-    return 0 if b == 0 else a + prod(a, b + -1)
+# test = '''\
+# def prod(a, b):
+#     return 0 if b == 0 else a + prod(a, b + -1)
 
-def square(n):
-    return prod(n, n)
+# def square(n):
+#     return prod(n, n)
 
-print(square(eval(input())))
-'''
+# print(square(eval(input())))
+# '''
 
-p = addParents()
-u = Uniqueify()
-tree = ast.parse(test)
-p.visit(tree)
-u.visit(tree)
-p.visit(tree)
-fix_missing_locations(tree)
-print(u.free)
-h = Heapify(u.free, u.freePerFunc)
-h.visit(tree)
-fix_missing_locations(tree)
-print(ast.unparse(tree))
+# p = addParents()
+# u = Uniqueify()
+# tree = ast.parse(test)
+# p.visit(tree)
+# u.visit(tree)
+# p.visit(tree)
+# fix_missing_locations(tree)
+# print(u.free)
+# h = Heapify(u.free, u.freePerFunc)
+# h.visit(tree)
+# fix_missing_locations(tree)
+# print(ast.unparse(tree))
