@@ -256,10 +256,11 @@ static big_pyobj* list_to_big(list l) {
 }
 
 static big_pyobj* string_to_big(string s) {
-  big_pyobj* v = (big_pyobj*)malloc(sizeof(big_pyobj));
-  v->tag = STRING;
-  v->u.s = s;
-  return v;
+  big_pyobj* newobj = (big_pyobj*)malloc(sizeof(big_pyobj));
+  newobj->tag = STRING;
+  newobj->u.s = s;
+  return newobj;
+  //similar to the list_to_big
 }
 
 big_pyobj* create_list(pyobj length) {
@@ -311,6 +312,7 @@ static int string_equal(string x, string y)
   char eq = 1;
   int i;
   for (i = 0; i != min(x.len, y.len); ++i)
+  //min automatically checks for alphabetical ordering
     eq = eq && equal_pyobj(x.data[i], y.data[i]);
   if (x.len == y.len)
     return eq;
@@ -415,7 +417,7 @@ static unsigned int hash_any(void* o)
 	h = 5*h + hash_any(&b->u.l.data[i]);
       return h;
     }
-    case STRING: {
+    case STRING: { //string hashing is lit
       int i;
       unsigned long h = 0; 
       for (i = 0; i != b->u.s.len; ++i)
